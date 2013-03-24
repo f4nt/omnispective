@@ -1,0 +1,4 @@
+ipython>=0.13.1
+Django==1.4.5
+django-tastypie==0.9.12
+South==0.7.6
