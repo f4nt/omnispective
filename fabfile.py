@@ -1,10 +1,20 @@
 import os.path
 import textwrap
+from datetime import datetime
 
 from fabric import api as fab
 
+#fab.env.user = 'ubuntu'
+fab.env.hosts = ['localhost', 'ubuntu@ec2-instance']
+fab.env.key_filename = '/home/f4nt/.ssh/kingdomkeys.pem'
+fab.env.roledefs = {
+    'localhost': 'localhost',
+    'webservers': ['ec2-instance', ]
+}
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+REMOTE_ROOT = '/var/www/omnispective/src'
+PROJECT_DL_ROOT = 'https://github.com/f4nt/omnispective/archive'
 
 
 def _make_virtualenv(name, hidden=True):
@@ -72,3 +82,39 @@ def test(what=None):
         apps = [what, ]
     with fab.lcd('server/omniserver/'):
         fab.local('python manage.py test %s' % ''.join(apps))
+
+
+@fab.runs_once()
+def _deploy_build(build_tag='master'):
+    ''' Build '''
+    build_dir = os.path.join(REMOTE_ROOT, 'builds')
+    repo_url = '%s/%s.zip' % (PROJECT_DL_ROOT, build_tag)
+    timestamp = datetime.now().strftime('%Y-%m-%d-%H_%M_%S')
+    build_name = 'omnispective-%s' % timestamp
+    fab.run('mkdir -p %s' % build_dir)
+    with fab.cd(build_dir):
+        fab.run('rm -f %s.zip' % build_tag)
+        fab.run('wget %s' % repo_url)
+        fab.run('unzip %s.zip' % build_tag)
+        fab.run('mv omnispective-%s %s' % (
+            build_tag, build_name)
+        )
+
+    with fab.cd(REMOTE_ROOT):
+        with fab.settings(fab.hide('warnings'), warn_only=True):
+            fab.run('rm -f previous')
+            fab.run('mv -f current previous')
+        fab.run('ln -s %s current' % os.path.join(
+            REMOTE_ROOT,
+            'builds/%s' % build_name
+        ))
+
+
+@fab.roles('webservers')
+@fab.with_settings(user='ubuntu')
+def deploy_omni_server(build_tag='master'):
+    ''' Deploys omnispective server TO THE CLOUD '''
+    with fab.prefix('source %s/../bin/activate' % REMOTE_ROOT):
+        with fab.cd(REMOTE_ROOT):
+            _deploy_build(build_tag)
+            fab.run('pip install -r current/deploy.requirements')
