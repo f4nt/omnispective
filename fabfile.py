@@ -84,7 +84,7 @@ def test(what=None):
         fab.local('python manage.py test %s' % ''.join(apps))
 
 
-@fab.runs_once()
+@fab.runs_once
 def _deploy_build(build_tag='master'):
     ''' Build '''
     build_dir = os.path.join(REMOTE_ROOT, 'builds')
@@ -110,6 +110,12 @@ def _deploy_build(build_tag='master'):
         ))
 
 
+def _restart_sites():
+    ''' Restart the supervisor instances '''
+    fab.sudo('supervisorctl restart omniserver')
+    fab.sudo('service nginx reload')
+
+
 @fab.roles('webservers')
 @fab.with_settings(user='ubuntu')
 def deploy_omni_server(build_tag='master'):
@@ -118,3 +124,4 @@ def deploy_omni_server(build_tag='master'):
         with fab.cd(REMOTE_ROOT):
             _deploy_build(build_tag)
             fab.run('pip install -r current/deploy.requirements')
+            _restart_sites()
