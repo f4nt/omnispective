@@ -4,7 +4,6 @@ from datetime import datetime
 
 from fabric import api as fab
 
-#fab.env.user = 'ubuntu'
 fab.env.hosts = ['localhost', 'ubuntu@ec2-instance']
 fab.env.key_filename = '/home/f4nt/.ssh/kingdomkeys.pem'
 fab.env.roledefs = {
@@ -84,7 +83,6 @@ def test(what=None):
         fab.local('python manage.py test %s' % ''.join(apps))
 
 
-@fab.runs_once
 def _deploy_build(build_tag='master'):
     ''' Build '''
     build_dir = os.path.join(REMOTE_ROOT, 'builds')
