@@ -281,6 +281,11 @@ def _restart_sites():
     fab.sudo('service nginx reload')
 
 
+def _run_migrations():
+    with fab.cd(os.path.join(REMOTE_ROOT, 'current/server/omniserver/')):
+        fab.run('python manage.py syncdb --migrate')
+
+
 @fab.roles('webservers')
 @fab.with_settings(user='ubuntu')
 @fab.task
