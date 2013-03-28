@@ -274,6 +274,11 @@ def _deploy_build(build_tag='master'):
             'builds/%s' % build_name
         ))
 
+    fab.run(
+        'ln -s /var/www/omnispective/src/prod_settings.py '
+        '/var/www/omnispective/src/current/server/omniserver/omniserver/'
+    )
+
 
 def _restart_sites():
     ''' Restart the supervisor instances '''
@@ -295,4 +300,5 @@ def deploy_omni_server(build_tag='master'):
         with fab.cd(REMOTE_ROOT):
             _deploy_build(build_tag)
             fab.run('pip install -r current/deploy.requirements')
+            _run_migrations()
             _restart_sites()
